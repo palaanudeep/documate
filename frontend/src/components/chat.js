@@ -75,11 +75,11 @@ function Chat() {
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ question: inputText })
+            body: JSON.stringify({ question: inputText, chat_history: messages.slice(1)})
           });
           data = await response.json();
           console.log('Q&A', data);
-          setMessages([...messages, `${inputText}`, data.summary]);
+          setMessages([...messages, `${inputText}`, data.answer]);
         }
         setInputText('');
       } catch (error) {

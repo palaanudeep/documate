@@ -1,8 +1,14 @@
 flask
 flask-cors
 langchain
+langchain-community
+langchain-openai
+langchainhub
 chromadb
 python-dotenv
 PyPDF2
 python-docx
-pdfminer.six
+pdfminer
+rapidocr-onnxruntime
+PyMuPDF
+bs4

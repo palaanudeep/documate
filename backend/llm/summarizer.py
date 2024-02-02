@@ -1,13 +1,11 @@
-from langchain.llms import Ollama
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-
+from langchain_openai import OpenAI
 from langchain.prompts import PromptTemplate
 
 import traceback
-from utils import extract_text_from_file
+from utils import extract_lcdocs_from_file
+from .document_rag import initialize_qa_rag_chain, create_rag_input_dict
 
-llm = Ollama(model="mistral", temperature=0, callback_manager = CallbackManager([StreamingStdOutCallbackHandler()]))
+llm = OpenAI(temperature=0)
 
 def create_prompt(input_text):
     template = '''
@@ -51,6 +49,20 @@ def get_summary(text):
     return summary
 
 def get_summary_from_file(file):
-    text = extract_text_from_file(file)
-    # print('FILE TEXT: ', text[:100 if len(text) > 100 else len(text)])
+    docs, text = extract_lcdocs_from_file(file)
+    # print('FILE TEXT: ', text[:1000 if len(text) > 1000 else len(text)])
+    if docs != None:
+        initialize_qa_rag_chain(docs)
     return get_summary(text)
+
+def get_answer_from_rag(question, chat_history):
+    from .document_rag import RAG_CHAIN
+    try:
+        rag_input_dict = create_rag_input_dict(question, chat_history)
+        result = RAG_CHAIN.invoke(rag_input_dict)
+        print(f'\n\nRESULT: {result}')
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
+        result = "RAG failed !!"
+    return result

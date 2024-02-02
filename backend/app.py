@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 load_dotenv()
 
-from llm.summarizer import get_summary, get_summary_from_file
+from llm.summarizer import get_summary_from_file, get_answer_from_rag
 
 
 
@@ -52,11 +52,13 @@ def summarize_text():
         filename = secure_filename(file.filename)
         print('FILENAME: ', filename)
         summary = get_summary_from_file(file)
+        return jsonify({'summary': summary})
     else:
         data = request.get_json()
-        text = data.get('question', '')
-        summary = get_summary(text)
-    return jsonify({'summary': summary})
+        question = data.get('question', '')
+        chat_history = data.get('chat_history', '')
+        answer = get_answer_from_rag(question, chat_history)
+        return jsonify({'answer': answer})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
