@@ -31,14 +31,14 @@ function Chat() {
     };
   
     const handleFileUpload = (event) => {
-      const acceptedFileTypes = ['application/pdf', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const acceptedFileTypes = ['application/pdf'];
       const file = event.target.files[0];
       if (!file) {
         return;
       }
       // Check file type
       if (!acceptedFileTypes.includes(file.type)) {
-        alert('Invalid file type. Please upload a PDF, DOCX, or TXT file.');
+        alert('Invalid file type. Please upload a PDF file.');
         return;
       }
       // Check file size (limit to 1MB for example)
@@ -100,7 +100,7 @@ function Chat() {
           <Container className="border border-light overflow-auto pt-3" style={{ height: '65vh', width: '60vw'}}>
           {messages && messages.length===0 && 
             <Paper square className='bg-dark text-white' elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
-              <Typography className="text-center" variant="h5">Submit a Document (PDF, DOCX, TXT) to start the Q&A Chatbot</Typography>
+              <Typography className="text-center" variant="h5">Submit a PDF Document to start the Q&A Chatbot</Typography>
             </Paper>}
           {messages.map((message, index) => (
             <Paper square key={index} className='bg-dark text-white' elevation={5} style={{ padding: '16px', marginBottom: '16px' }}>
@@ -110,7 +110,7 @@ function Chat() {
                     <span style={{ color: 'blue', fontSize: '24px', marginRight: '16px' }}>
                       <AiOutlineRobot />
                     </span>
-                    <strong>CHATBOT</strong>
+                    <strong>DocuBot</strong>
                     <br />
                     <br />
                     {message}
@@ -123,7 +123,7 @@ function Chat() {
                     <span style={{ color: 'green', fontSize: '24px', marginRight: '16px' }}>
                       <FaUser />
                     </span>
-                    <strong>USER</strong>
+                    <strong>User</strong>
                     <br />
                     <br />
                     {message}
@@ -144,7 +144,7 @@ function Chat() {
           <FormControl
             className="rounded-0"
             type="file"
-            accept=".pdf,.docx,.txt"
+            accept=".pdf"
             onChange={handleFileUpload}
           />
           <Button className="sm rounded-0" onClick={makeApiCall} disabled={selectedFile === null}>

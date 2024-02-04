@@ -83,7 +83,7 @@ def create_rag_input_dict(question, chat_history):
 
 def extract_and_load_document(file):
     try:
-        docs, text = extract_lcdocs_from_file(file)
+        docs = extract_lcdocs_from_file(file)
         # print('FILE TEXT: ', text[:1000 if len(text) > 1000 else len(text)])
         if docs != None:
             initialize_qa_rag_chain(docs)

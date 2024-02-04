@@ -11,20 +11,13 @@ def extract_lcdocs_from_file(file):
     filename = secure_filename(file.filename)
     file_extension = os.path.splitext(filename)[1]
 
-    docs, text = None, ''
-    if file_extension == '.txt':
-        print('TEXT FILE')
-        text = file.stream.read().decode('utf-8')
-    elif file_extension == '.docx':
-        print('DOCX FILE')
-        doc = Document(io.BytesIO(file.stream.read()))
-        text = ' '.join([paragraph.text for paragraph in doc.paragraphs])
-    elif file_extension == '.pdf':
+    docs = None
+    if file_extension == '.pdf':
         print('PDF FILE')
         # getting lc docs to build rag chain
         docs = langchain_pdf_document_loader(file, filename)
     
-    return docs, text
+    return docs
 
 
 

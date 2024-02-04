@@ -6,7 +6,7 @@ const Header = () => {
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <LinkContainer to="/">
-        <Navbar.Brand>DocuMate</Navbar.Brand>
+        <Navbar.Brand className="mx-auto"><strong>DocuMate</strong></Navbar.Brand>
       </LinkContainer>
       {/*<Navbar.Toggle aria-controls="basic-navbar-nav" />
       <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
