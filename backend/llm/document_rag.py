@@ -3,9 +3,12 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain import hub
+# from langchain import hub
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
+import traceback
+
+from utils import extract_lcdocs_from_file
 
 
 RAG_CHAIN = None
@@ -75,3 +78,30 @@ def create_rag_input_dict(question, chat_history):
         "chat_history": chat_history,
     }
     return rag_input_dict
+
+
+
+def extract_and_load_document(file):
+    try:
+        docs, text = extract_lcdocs_from_file(file)
+        # print('FILE TEXT: ', text[:1000 if len(text) > 1000 else len(text)])
+        if docs != None:
+            initialize_qa_rag_chain(docs)
+        result = RAG_CHAIN.invoke(create_rag_input_dict('Can you provide a brief overview of the document', []))
+        print(f'\n\nRESULT: {result}')
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
+        result = 'Document failed to load !!'
+    return result
+
+def get_answer_from_rag(question, chat_history):
+    try:
+        rag_input_dict = create_rag_input_dict(question, chat_history)
+        result = RAG_CHAIN.invoke(rag_input_dict)
+        print(f'\n\nRESULT: {result}')
+    except Exception as e:
+        print(e)
+        print(traceback.format_exc())
+        result = "RAG QA failed !!"
+    return result

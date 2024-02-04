@@ -23,20 +23,13 @@ def extract_lcdocs_from_file(file):
         print('PDF FILE')
         # getting lc docs to build rag chain
         docs = langchain_pdf_document_loader(file, filename)
-        # temporary full text for summary
-        pdf = fitz.open(stream=file.stream.read(), filetype='pdf')
-        text = ' '.join([page.get_text() for page in pdf])
     
     return docs, text
 
 
 
 def langchain_pdf_document_loader(file, filename):
-    # temporary file pointer reset (will be removed)
-    file.stream.seek(0)
     blob = Blob.from_data(file.stream.read(), path=filename)
-    # print('BLOB: ', blob)
-    # print('BLOB bytes: ', blob.as_bytes_io())
     with blob.as_bytes_io() as data:
         doc = fitz.open(stream=data, filetype="pdf")
         yield from [

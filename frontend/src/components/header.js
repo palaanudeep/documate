@@ -8,7 +8,7 @@ const Header = () => {
       <LinkContainer to="/">
         <Navbar.Brand>DocuMate</Navbar.Brand>
       </LinkContainer>
-      <Navbar.Toggle aria-controls="basic-navbar-nav" />
+      {/*<Navbar.Toggle aria-controls="basic-navbar-nav" />
       <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
         <Nav className="ml-auto">
           <LinkContainer to="/summarizer">
@@ -18,7 +18,7 @@ const Header = () => {
             <Nav.Link>Chat</Nav.Link>
           </LinkContainer>
         </Nav>
-      </Navbar.Collapse>
+      </Navbar.Collapse>*/}
     </Navbar>
   );
 };

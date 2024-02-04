@@ -12,3 +12,4 @@ pdfminer
 rapidocr-onnxruntime
 PyMuPDF
 bs4
+tiktoken
