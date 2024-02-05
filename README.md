@@ -47,7 +47,7 @@ Before running the project, make sure you have created an OpenAI account and sav
    python -m venv venv # to create a virtual environment to install packages
    source venv/bin/activate # to activate the environment
    pip install -r requirements.txt
-   Flask run
+   flask run
    ```
 
 3. Installing and running React for UI in a new terminal in documate folder:
