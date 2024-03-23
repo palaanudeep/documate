@@ -13,3 +13,8 @@ rapidocr-onnxruntime
 PyMuPDF
 bs4
 tiktoken
+psycopg2-binary
+Flask-SQLAlchemy
+flask-security-too
+flask-jwt-extended
+Flask-Migrate

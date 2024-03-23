@@ -41,14 +41,36 @@ Before running the project, make sure you have created an OpenAI account and sav
    cd documate
    ```
 
-2. Installing and running Flask as a backend service:
-   ```bash
-   cd backend
-   python -m venv venv # to create a virtual environment to install packages
-   source venv/bin/activate # to activate the environment
-   pip install -r requirements.txt
-   flask run
-   ```
+2. Running Flask as a backend service:
+
+   1. **Setting Up Environment Variables**
+
+      This project uses a `.flaskenv` file to store environment variables. A `.flaskenv.example` file is provided as a template.
+
+      1. Copy `.flaskenv.example` and rename it to `.flaskenv`
+      2. Open `.flaskenv` and replace the placeholder values with your actual credentials.
+
+      **Important:** Do not commit your `.flaskenv` file to version control.
+
+      **Required Variables:**
+
+      * `FLASK_APP`: setup.py
+      * `FLASK_ENV`: development
+      * `FLASK_SECRET_KEY`: Set your own secret key or generate in terminal - 
+            
+            python -c "import secrets; print(secrets.token_urlsafe(32))"
+      * `POSTGRES_USER`: database user.
+      * `POSTGRES_PASSWORD`: database password.
+
+   2. Installing and running backend service
+
+      ```bash
+      cd backend
+      python -m venv venv # to create a virtual environment to install packages
+      source venv/bin/activate # to activate the environment
+      pip install -r requirements.txt
+      flask run
+      ```
 
 3. Installing and running React for UI in a new terminal in documate folder:
    ```bash

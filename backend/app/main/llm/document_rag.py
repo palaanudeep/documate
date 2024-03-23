@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
 import traceback
 
-from utils import extract_lcdocs_from_file
+from app.main.utils import extract_lcdocs_from_file
 
 
 RAG_CHAIN = None
