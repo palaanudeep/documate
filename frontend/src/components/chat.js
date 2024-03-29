@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import { Container, Typography, Paper } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import UploadIcon from '@mui/icons-material/Upload';
 import { Button, FormControl, InputGroup, Spinner, Alert } from 'react-bootstrap';
 import { AiOutlineRobot } from 'react-icons/ai'; // for bot messages
 import { FaUser } from 'react-icons/fa'; // for user messages
+import { useLocation, useOutletContext } from 'react-router-dom';
 
 function Chat() {
+    const auth = useOutletContext();
+    let location = useLocation();
     const [inputText, setInputText] = useState('');
     const [isDocSubmitted, setIsDocSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,26 +64,25 @@ function Chat() {
       setIsLoading(true);
       try {
         let response, data;
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${auth.token}`
+          }
+        };
         if (selectedFile && !isDocSubmitted) {
           const formData = new FormData();
           formData.append('file', selectedFile);
-          response = await fetch('http://localhost:5000/load_doc', {
-            method: 'POST',
-            body: formData
-          });
-          data = await response.json();
+          response = await axios.post('/api/load_doc', formData, config);
+          data = response.data;
           console.log('DOC LOADED', data);
           setMessages([...messages, data.message]);
           setIsDocSubmitted(true);
         } else {
-          response = await fetch('http://localhost:5000/get_answer', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ question: inputText, chat_history: messages})
-          });
-          data = await response.json();
+          response = await axios.post('/api/get_answer', {
+            question: inputText, 
+            chat_history: messages
+          }, config);
+          data = response.data;
           console.log('Q&A', data);
           setMessages([...messages, `${inputText}`, data.answer]);
         }
@@ -97,7 +100,12 @@ function Chat() {
     return (
       <Container>
         <div className="d-flex justify-content-center align-items-center vh-50">
-          <Container className="border border-light overflow-auto pt-3" style={{ height: '65vh', width: '60vw'}}>
+        <Container className="border border-light overflow-auto pt-3" style={{ height: '65vh', width: '60vw'}}>
+          {location.state && location.state.message && (
+              <Alert variant="success" dismissible>
+                  {location.state.message}
+              </Alert>
+            )}
           {messages && messages.length===0 && 
             <Paper square className='bg-dark text-white' elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
               <Typography className="text-center" variant="h5">Submit a PDF Document to start the Q&A Chatbot</Typography>
@@ -123,7 +131,7 @@ function Chat() {
                     <span style={{ color: 'green', fontSize: '24px', marginRight: '16px' }}>
                       <FaUser />
                     </span>
-                    <strong>User</strong>
+                    <strong>User ({auth.email})</strong>
                     <br />
                     <br />
                     {message}

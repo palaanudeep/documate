@@ -1,8 +1,11 @@
+import axios from 'axios';
 import React from 'react';
 import { Navbar, Nav } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
+import { Link } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({logout}) => {
+
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <LinkContainer to="/">
@@ -19,6 +22,9 @@ const Header = () => {
           </LinkContainer>
         </Nav>
       </Navbar.Collapse>*/}
+      {logout && <Nav className="ml-auto">
+        <Nav.Link as={Link} onClick={logout} to="/">Logout</Nav.Link>
+      </Nav>}
     </Navbar>
   );
 };

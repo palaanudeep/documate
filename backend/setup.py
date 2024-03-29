@@ -1,6 +1,7 @@
+from flask_migrate import Migrate
 from app import create_app, db
 from app.models import User
-from flask_migrate import Migrate
+from app.auth.routes import current_user
 
 app = create_app()
 # migrate = Migrate(app, db)
@@ -10,6 +11,6 @@ with app.app_context():
 
 @app.shell_context_processor
 def make_shell_context():
-    return dict(db=db, User=User)
+    return dict(db=db, User=User, current_user=current_user)
 
 print("App created")

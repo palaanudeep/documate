@@ -1,19 +1,21 @@
 from flask import Blueprint, jsonify, request
 from werkzeug.utils import secure_filename
-from app.auth.routes import current_user
+from flask_jwt_extended import current_user, jwt_required
 from app.main.llm.document_rag import extract_and_load_document, get_answer_from_rag
 
 main = Blueprint('main', __name__)
 
 @main.route('/')
+@jwt_required()
 def home():
-    if current_user.is_authenticated():
+    if current_user:
         return jsonify({'message': f'Hello {current_user.email}, this is Documate!'})
     return jsonify({'message': 'Hello, Please login to Documate!'})
 
-@main.route('/load_doc', methods=['POST'])
+@main.route('/api/load_doc', methods=['POST'])
+@jwt_required()
 def load_document():
-    if current_user.is_anonymous():
+    if current_user is None:
         return jsonify({'message': 'Please login to Documate!'}), 401
     if 'file' in request.files:
         file = request.files['file']
@@ -23,9 +25,10 @@ def load_document():
         return jsonify({'message': message})
 
 
-@main.route('/get_answer', methods=['POST'])
+@main.route('/api/get_answer', methods=['POST'])
+@jwt_required()
 def get_answer():
-    if current_user.is_anonymous():
+    if current_user is None:
         return jsonify({'message': 'Please login to Documate!'}), 401
     data = request.get_json()
     question = data.get('question', '')

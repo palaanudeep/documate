@@ -18,3 +18,4 @@ Flask-SQLAlchemy
 flask-security-too
 flask-jwt-extended
 Flask-Migrate
+redis
