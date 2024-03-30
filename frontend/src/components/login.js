@@ -6,6 +6,7 @@ import { Typography } from '@mui/material';
 
 
 function LoginForm({login}) {
+    const API_URL = process.env.REACT_APP_API_URL;
     let location = useLocation();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ function LoginForm({login}) {
         event.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post('/api/login', {
+            const response = await axios.post(`${API_URL}/api/login`, {
                 email: state.email,
                 password: state.password
             });

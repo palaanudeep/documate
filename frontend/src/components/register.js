@@ -6,6 +6,7 @@ import { Typography } from '@mui/material';
 
 
 function RegistrationForm() {
+    const API_URL = process.env.REACT_APP_API_URL;
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [state , setState] = useState({
@@ -40,7 +41,7 @@ function RegistrationForm() {
         event.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post('/api/register', {
+            const response = await axios.post(`${API_URL}/api/register`, {
                 email: state.email,
                 password: state.password
             });

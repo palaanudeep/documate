@@ -9,6 +9,7 @@ import { FaUser } from 'react-icons/fa'; // for user messages
 import { useLocation, useOutletContext } from 'react-router-dom';
 
 function Chat() {
+    const API_URL = process.env.REACT_APP_API_URL;
     const auth = useOutletContext();
     let location = useLocation();
     const [inputText, setInputText] = useState('');
@@ -72,13 +73,13 @@ function Chat() {
         if (selectedFile && !isDocSubmitted) {
           const formData = new FormData();
           formData.append('file', selectedFile);
-          response = await axios.post('/api/load_doc', formData, config);
+          response = await axios.post(`${API_URL}/api/load_doc`, formData, config);
           data = response.data;
           console.log('DOC LOADED', data);
           setMessages([...messages, data.message]);
           setIsDocSubmitted(true);
         } else {
-          response = await axios.post('/api/get_answer', {
+          response = await axios.post(`${API_URL}/api/get_answer`, {
             question: inputText, 
             chat_history: messages
           }, config);
