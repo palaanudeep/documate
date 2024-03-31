@@ -24,6 +24,6 @@ jobs:
               run: REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }} npm run build
 
             - name: Deploy 🚀
-              uses: peaceiris/actions-gh-pages@v3
+              uses: JamesIves/github-pages-deploy-action@v4
               with:
-                publish_dir: ../build
+                folder: frontend/build
