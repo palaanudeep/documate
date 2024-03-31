@@ -1,6 +1,9 @@
 name: Build and Deploy to GitHub Pages
 
 on: [push]
+defaults:
+  run:
+    working-directory: frontend
 permissions:
     contents: write
 jobs:
