@@ -43,6 +43,7 @@ const PrivateRoute = ({ auth, redirectPath = "/login", logout }) => {
 
 
 function App() {
+  const BASE_URL = process.env.REACT_APP_BASE_URL;
   const authCookie = "user";
   const [cookies, setCookie, removeCookie] = useCookies([authCookie]);
 
@@ -61,7 +62,7 @@ function App() {
 
   return (
     <Container fluid style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }} className="bg-dark text-white">
-      <Router>
+      <Router basename={BASE_URL}>
         <Container>
           <Routes>
             <Route element={<PublicRoute auth={cookies.user} />}>
