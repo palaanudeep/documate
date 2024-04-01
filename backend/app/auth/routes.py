@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from app import db, jwt, ACCESS_EXPIRES
 from app.models import User
 from flask_jwt_extended import create_access_token, jwt_required, current_user, get_jwt
-import redis
+# import redis
 
 auth = Blueprint("auth", __name__)
 

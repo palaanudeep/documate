@@ -2,7 +2,7 @@ import os
 from os.path import join, dirname
 from datetime import timedelta
 from flask import Flask
-from flask_cors import CORS
+# from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 
@@ -22,7 +22,7 @@ def create_app():
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         DEBUG=True
     )
-    CORS(app)
+    # CORS(app)
     db.init_app(app)
     jwt.init_app(app)
 
