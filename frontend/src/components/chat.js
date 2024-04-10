@@ -19,6 +19,7 @@ function Chat() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [messages, setMessages] = useState([]);
     const endOfMsgsRef = useRef(null);
+    const [chatId, setChatId] = useState(null);
   
     const scrollToBottom = () => {
       endOfMsgsRef.current?.scrollIntoView({
@@ -27,12 +28,21 @@ function Chat() {
       });
     };
 
+    const updateChat = (newMessage='', user='') => {
+      if (newMessage.length===0) {
+        setMessages(_ => []);
+        return;
+      }
+      setMessages(prevMessages => [...prevMessages, { message: newMessage, user }]);
+    };
+
     useEffect(() => {
       scrollToBottom();
     }, [messages, isLoading]);
 
     const handleInputChange = (event) => {
-      setInputText(event.target.value);
+      const message = event.target.value;
+      setInputText(message);
     };
   
     const handleFileUpload = (event) => {
@@ -46,9 +56,9 @@ function Chat() {
         alert('Invalid file type. Please upload a PDF file.');
         return;
       }
-      // Check file size (limit to 1MB for example)
-      if (file.size > 10000000) {
-        alert('File is too large. Please upload a file smaller than 10MB.');
+      // Check file size (limit to 20MB)
+      if (file.size > 20000000) {
+        alert('File is too large. Please upload a file smaller than 20MB.');
         return;
       }
       // Set file and clear all states
@@ -57,7 +67,8 @@ function Chat() {
       setInputText('');
       setError(null);
       setIsLoading(false);
-      setMessages([]);
+      // setMessages([]);
+      updateChat(''); // clear chat
     };
 
     const makeApiCall = async () => {
@@ -76,16 +87,21 @@ function Chat() {
           response = await axios.post(`${API_URL}/api/load_doc`, formData, config);
           data = response.data;
           console.log('DOC LOADED', data);
-          setMessages([...messages, data.message]);
+          // setMessages([...messages, data.message]);
+          setChatId(data.chat_id);
+          updateChat(data.summary);
           setIsDocSubmitted(true);
         } else {
           response = await axios.post(`${API_URL}/api/get_answer`, {
             question: inputText, 
-            chat_history: messages
+            chat_history: messages,
+            chat_id: chatId
           }, config);
           data = response.data;
           console.log('Q&A', data);
-          setMessages([...messages, `${inputText}`, data.answer]);
+          // setMessages([...messages, `${inputText}`, data.answer]);
+          updateChat(inputText, auth.email);
+          updateChat(data.answer);
         }
         setInputText('');
       } catch (error) {
@@ -111,10 +127,10 @@ function Chat() {
             <Paper square className='bg-dark text-white' elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
               <Typography className="text-center" variant="h5">Submit a PDF Document to start the Q&A Chatbot</Typography>
             </Paper>}
-          {messages.map((message, index) => (
+          {messages.map(({message, user}, index) => (
             <Paper square key={index} className='bg-dark text-white' elevation={5} style={{ padding: '16px', marginBottom: '16px' }}>
               <Typography variant="body1">
-                {index%2===0 ? (
+                {user.length===0 ? (
                   <>
                     <span style={{ color: 'blue', fontSize: '24px', marginRight: '16px' }}>
                       <AiOutlineRobot />

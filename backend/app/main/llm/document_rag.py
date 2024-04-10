@@ -72,7 +72,7 @@ just reformulate it if needed and otherwise return it as is."""
     return contextualize_q_chain
 
 def create_rag_input_dict(question, chat_history):
-    chat_history = [HumanMessage(content=chat_history[i]) if i%2 == 0 else AIMessage(content=chat_history[i]) for i in range(len(chat_history))]
+    chat_history = [HumanMessage(content=msg_obj['message']) if len(msg_obj['user'])>0 else AIMessage(content=msg_obj['message']) for msg_obj in chat_history]
     rag_input_dict = {
         "question": question,
         "chat_history": chat_history,
@@ -87,12 +87,13 @@ def extract_and_load_document(file):
         # print('FILE TEXT: ', text[:1000 if len(text) > 1000 else len(text)])
         if docs != None:
             initialize_qa_rag_chain(docs)
-        result = RAG_CHAIN.invoke(create_rag_input_dict('Can you provide a brief overview of the document', []))
+        result = RAG_CHAIN.invoke(create_rag_input_dict('Provide a detailed summary of the document', []))
         print(f'\n\nRESULT: {result}')
     except Exception as e:
         print(e)
         print(traceback.format_exc())
-        result = 'Document failed to load !!'
+        print('Document failed to load !!')
+        raise e
     return result
 
 def get_answer_from_rag(question, chat_history):
@@ -103,5 +104,6 @@ def get_answer_from_rag(question, chat_history):
     except Exception as e:
         print(e)
         print(traceback.format_exc())
-        result = "RAG QA failed !!"
+        print("RAG QA failed !!")
+        raise e
     return result

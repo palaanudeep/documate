@@ -1,7 +1,7 @@
 import os
 import io
 import fitz  # PyMuPDF
-from docx import Document
+# from docx import Document
 from werkzeug.utils import secure_filename
 
 from langchain_community.document_loaders.blob_loaders import Blob

@@ -7,7 +7,6 @@ import Footer from './components/footer';
 import Chat from './components/chat';
 import Register from './components/register';
 import Login from './components/login';
-// import Summarizer from './components/summarizer';
 import PageNotFound from './components/pageNotFound';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
