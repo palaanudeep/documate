@@ -19,4 +19,8 @@ flask-security-too
 flask-jwt-extended
 Flask-Migrate
 redis
-gunicornreportlab
+gunicorn
+reportlab
+beautifulsoup4
+requests
+html2text
