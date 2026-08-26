@@ -1,4 +1,52 @@
-frontend/node_modules
+# Environment and secrets
+.env
+.flaskenv
+*.env
+*.env.local
+
+# Python
 backend/venv
-backend/.flaskenv
 **/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Node
+frontend/node_modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Chroma
+chroma_db/
+*.chroma
+
+# Eval outputs
+evals/eval_results.json
+evals/fixtures/*.pdf
+
+# Logs
+*.log
