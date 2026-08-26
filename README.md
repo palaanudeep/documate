@@ -4,8 +4,6 @@ Ask questions about PDFs and web pages. Get answers with citations showing exact
 
 **What it does:** Upload a PDF or paste a URL. Ask questions. DocuMate retrieves relevant sections, generates an answer, and cites the source (page numbers for PDFs, clickable links for web pages).
 
-**Product split:** DocuMate handles document Q&A. **SuperWise** (separate repo) is the personal agent for tasks, goals, and calendar.
-
 ![DocuMate Interface](DocuMate.png)
 
 ## Features
