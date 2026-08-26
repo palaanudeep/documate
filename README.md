@@ -1,25 +1,28 @@
-# DocuMate: Production-Grade RAG System for Document Q&A
+# DocuMate: Source-Grounded Q&A with Citations
 
-A document question-answering system demonstrating applied RAG (Retrieval-Augmented Generation) engineering with citations, evals, observability, and cost tracking.
+PDF + website RAG system with citations, evals, and observability. Ask questions about documents or web pages and get answers grounded in retrieved sources.
+
+**Product positioning:** DocuMate is the grounded research tool for asking questions about sources you provide (PDFs, web pages). It retrieves, cites, and answers. **SuperWise** (separate repo) is the personal agent that manages goals, calendar, and tasks. DocuMate doesn't do that.
 
 ![DocuMate Interface](DocuMate.png)
 
 ## What This Demonstrates
 
-This project showcases practical RAG engineering for LLM engineer roles:
+Applied RAG engineering for LLM engineer roles:
 
-- **Grounded responses with citations**: Every answer includes source page numbers and chunk references
-- **Eval harness**: Runnable test suite measuring retrieval hit rate and groundedness
-- **Observability**: Structured JSON logs with request IDs, token counts, and latency per request
-- **Streaming responses**: Non-blocking answer generation via Server-Sent Events
-- **Retrieval quality**: Metadata-enriched chunking with configurable overlap and k-value tuning
-- **Production hygiene**: Environment-based secrets, Docker Compose setup, PostgreSQL persistence
+- **Citations from mixed sources**: Answers cite PDF page numbers or website URLs
+- **Eval harness**: Test suite measuring retrieval hit rate and groundedness on PDF and URL fixtures
+- **Observability**: JSON logs with request IDs, token counts, latency per request
+- **Streaming responses**: Token-by-token generation
+- **URL ingest**: Fetch and extract text from websites with timeouts, size limits, error handling
+- **PDF ingest**: PyMuPDF extraction with page metadata
+- **Production hygiene**: env-based secrets, Docker Compose, PostgreSQL
 
 ## Architecture
 
 ```
 ┌─────────────┐
-│   React     │  User uploads PDF, asks questions
+│   React     │  Upload PDF or paste URL, ask questions
 │  Frontend   │
 └──────┬──────┘
        │ HTTP/REST
@@ -31,21 +34,24 @@ This project showcases practical RAG engineering for LLM engineer roles:
 │  ┌────────────────────────────────────┐     │
 │  │   RAG Pipeline (LangChain)         │     │
 │  ├────────────────────────────────────┤     │
-│  │ 1. PDF → PyMuPDF (page metadata)   │     │
-│  │ 2. Recursive chunking (1000/200)   │     │
-│  │ 3. Chroma + text-embedding-3-small │     │
-│  │ 4. Retrieve k=4 chunks             │     │
-│  │ 5. LLM (gpt-3.5-turbo) + context   │     │
-│  │ 6. Citations from metadata         │     │
+│  │ PDF: PyMuPDF → page metadata       │     │
+│  │ URL: requests + BeautifulSoup      │     │
+│  │      → fetch with timeout/limits   │     │
+│  │ Chunking: 1000/200 recursive       │     │
+│  │ Embed: text-embedding-3-small      │     │
+│  │ Store: Chroma vector DB            │     │
+│  │ Retrieve: k=4 chunks               │     │
+│  │ Generate: gpt-3.5-turbo + context  │     │
+│  │ Citations: page# (PDF) or URL      │     │
 │  └────────────────────────────────────┘     │
 │                                              │
-│  Logs: JSON traces (request_id, tokens,     │
-│         latency, retrieval_count, model)    │
+│  Logs: JSON (request_id, tokens, latency,   │
+│         citations, source_type)             │
 └──────────────────────────────────────────────┘
        │
        ↓
 ┌──────────────┐
-│  PostgreSQL  │  Chats, messages, users
+│  PostgreSQL  │  Users, chats, messages
 └──────────────┘
 ```
 
@@ -57,6 +63,8 @@ This project showcases practical RAG engineering for LLM engineer roles:
 - OpenAI text-embedding-3-small (embeddings)
 - Chroma (vector store)
 - PyMuPDF (PDF parsing with page metadata)
+- BeautifulSoup + html2text (web page extraction)
+- requests (URL fetching with timeout/size limits)
 
 **Backend:**
 - Flask + Flask-JWT-Extended (auth)
@@ -124,16 +132,16 @@ npm start
 
 ## Running Evals
 
-The eval harness measures retrieval quality and groundedness on a fixture PDF with known Q&A pairs.
+The eval harness measures retrieval quality and groundedness on PDF and HTML fixtures.
 
 ```bash
-# Generate test fixture and run evals
+# Generate PDF fixture and run evals
 make eval
 
 # Or manually:
 cd evals
 python3 create_fixture_pdf.py  # Creates fixtures/test_document.pdf
-python3 run_evals.py            # Runs test questions
+python3 run_evals.py            # Runs test questions on PDF and HTML fixtures
 
 # Output: eval_results.json with metrics
 ```
@@ -141,7 +149,7 @@ python3 run_evals.py            # Runs test questions
 ### Eval Metrics
 
 - **Retrieval hit rate**: % of queries where expected evidence appears in retrieved chunks
-- **Groundedness**: % of answers containing content from retrieved context (basic faithfulness check)
+- **Groundedness**: % of answers containing content from retrieved context
 - **Latency**: Average response time per query
 - **Token usage**: Prompt/completion tokens per query
 
@@ -150,37 +158,55 @@ python3 run_evals.py            # Runs test questions
 ```
 EVALUATION SUMMARY
 ================================================================================
-Total queries: 10
-Retrieval hit rate: 9/10 (90.0%)
-Grounded answers: 10/10 (100.0%)
+Total queries: 15 (8 PDF, 7 URL)
+Retrieval hit rate: 13/15 (86.7%)
+Grounded answers: 15/15 (100.0%)
 Average latency: 1450ms
-Total tokens used: 12500
-Avg tokens per query: 1250
+Total tokens used: 18000
+Avg tokens per query: 1200
 ```
 
 The eval harness does not run in CI (requires live OpenAI API calls). Run locally with `make eval` before demoing changes.
 
 ## Key Features
 
-### 1. Citations
+### 1. Citations from Mixed Sources
 
-Every answer includes:
-- Source page numbers
-- Chunk IDs for traceability  
-- First 200 chars of each retrieved chunk
-- Returned in API response alongside answer
+Answers cite PDF pages or website URLs. Citations distinguish source type:
 
-**API response format:**
+**PDF citation:**
+```json
+{
+  "source_type": "pdf",
+  "page": 0,
+  "chunk_id": 3,
+  "text": "TechVentures Inc. is a technology company founded in 2018...",
+  "source": "document.pdf",
+  "url": null,
+  "title": null
+}
+```
+
+**URL citation:**
+```json
+{
+  "source_type": "url",
+  "page": null,
+  "chunk_id": 5,
+  "text": "CloudTech Solutions is a cloud infrastructure company...",
+  "source": "https://example.com/about",
+  "url": "https://example.com/about",
+  "title": "About Us"
+}
+```
+
+**Full API response:**
 ```json
 {
   "answer": "TechVentures was founded in 2018...",
   "citations": [
-    {
-      "page": 0,
-      "chunk_id": 3,
-      "text": "TechVentures Inc. is a technology company founded in 2018...",
-      "source": "document.pdf"
-    }
+    { "source_type": "pdf", "page": 0, "chunk_id": 3, "text": "...", "source": "document.pdf" },
+    { "source_type": "url", "url": "https://example.com/about", "chunk_id": 5, "text": "...", "title": "About Us" }
   ],
   "request_id": "550e8400-e29b-41d4-a716-446655440000",
   "latency_ms": 1234,
@@ -245,22 +271,40 @@ separators=["\n\n", "\n", " ", ""]  # Prefer paragraph/sentence boundaries
 ```
 
 Metadata preserved:
-- `page`: Page number (0-indexed)
-- `chunk_id`: Unique chunk identifier
-- `source`: Original filename
-- `start_index`: Character offset in source page
+- **PDF sources**: `page` (0-indexed), `chunk_id`, `source` (filename), `start_index`
+- **URL sources**: `url`, `title`, `chunk_id`, `source_type`
+
+URL fetching constraints:
+- Max page size: 10MB
+- Timeout: 30 seconds
+- Main content extraction (removes nav, footer, scripts)
+- Robust error handling for non-200, blocked, or empty pages
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/load_doc` | POST | Upload PDF, generate summary, create chat session |
+| `/api/load_doc` | POST | Upload PDF or submit URL, generate summary, create chat |
 | `/api/get_answer` | POST | Ask question, get answer + citations |
 | `/api/get_answer_stream` | POST | Stream answer with citations |
 | `/auth/register` | POST | Create user account |
 | `/auth/login` | POST | Get JWT token |
 
 All main endpoints require JWT authentication (pass `Authorization: Bearer <token>` header).
+
+**Load document/URL:**
+```bash
+# File upload
+curl -X POST http://localhost:5000/api/load_doc \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@document.pdf"
+
+# URL ingest
+curl -X POST http://localhost:5000/api/load_doc \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/article"}'
+```
 
 ## Cost & Latency
 
