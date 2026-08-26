@@ -10,3 +10,4 @@ ts	phase	decision	why	evidence	result
 2026-08-26T19:45:00Z	bug	found real eval bug: URL questions run against PDF fixture	run_evals.py loads only PDF, iterates all TEST_CASES (PDF+URL), so CloudTech questions asked of TechVentures doc	run_evals.py line 163	must fix before merge
 2026-08-26T19:51:00Z	verify	extended test_url_ingest.py to prove HTML→LangChain doc with URL metadata	added test_html_to_langchain_doc(), verifies source_type=url, title, url fields	test_url_ingest.py	proves HTML extraction path correct
 2026-08-26T19:50:00Z	fix	rewrote run_evals.py to test PDF and URL separately	now loads PDF for PDF_TEST_CASES, HTML for URL_TEST_CASES, prints separate+combined summaries	run_evals.py rewritten	bug fixed, honest eval
+2026-08-26T19:55:00Z	complete	PR updated to clarify single-document limitation	PR description now states: each load replaces in-memory Chroma, multi-doc is not in this PR	PR#1 description	honest about scope
