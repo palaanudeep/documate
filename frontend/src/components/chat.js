@@ -28,12 +28,12 @@ function Chat() {
       });
     };
 
-    const updateChat = (newMessage='', user='') => {
+    const updateChat = (newMessage='', user='', citations=[]) => {
       if (newMessage.length===0) {
         setMessages(_ => []);
         return;
       }
-      setMessages(prevMessages => [...prevMessages, { message: newMessage, user }]);
+      setMessages(prevMessages => [...prevMessages, { message: newMessage, user, citations }]);
     };
 
     useEffect(() => {
@@ -89,7 +89,7 @@ function Chat() {
           console.log('DOC LOADED', data);
           // setMessages([...messages, data.message]);
           setChatId(data.chat_id);
-          updateChat(data.summary);
+          updateChat(data.summary, '', data.citations || []);
           setIsDocSubmitted(true);
         } else {
           response = await axios.post(`${API_URL}/api/get_answer`, {
@@ -100,8 +100,8 @@ function Chat() {
           data = response.data;
           console.log('Q&A', data);
           // setMessages([...messages, `${inputText}`, data.answer]);
-          updateChat(inputText, auth.email);
-          updateChat(data.answer);
+          updateChat(inputText, auth.email, []);
+          updateChat(data.answer, '', data.citations || []);
         }
         setInputText('');
       } catch (error) {
@@ -127,7 +127,7 @@ function Chat() {
             <Paper square className='bg-dark text-white' elevation={3} style={{ padding: '16px', marginBottom: '16px' }}>
               <Typography className="text-center" variant="h5">Submit a PDF Document to start the Q&A Chatbot</Typography>
             </Paper>}
-          {messages.map(({message, user}, index) => (
+          {messages.map(({message, user, citations}, index) => (
             <Paper square key={index} className='bg-dark text-white' elevation={5} style={{ padding: '16px', marginBottom: '16px' }}>
               <Typography variant="body1">
                 {user.length===0 ? (
@@ -139,6 +139,20 @@ function Chat() {
                     <br />
                     <br />
                     {message}
+                    {citations && citations.length > 0 && (
+                      <>
+                        <br />
+                        <br />
+                        <div style={{ fontSize: '0.85em', color: '#aaa', borderTop: '1px solid #555', paddingTop: '8px', marginTop: '8px' }}>
+                          <strong>Sources:</strong>
+                          {citations.map((citation, idx) => (
+                            <div key={idx} style={{ marginTop: '4px', paddingLeft: '8px' }}>
+                              • Page {citation.page + 1}, Chunk {citation.chunk_id}: "{citation.text}"
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                     <br />
                     <br />
                     Feel free to ask any follow-up questions.
