@@ -26,7 +26,7 @@ from app.main.llm.document_rag import (
     get_answer_from_rag,
     RETRIEVER
 )
-from test_cases import TEST_CASES
+from test_cases import TEST_CASES, PDF_TEST_CASES, URL_TEST_CASES
 
 
 class EvalMetrics:
@@ -101,8 +101,13 @@ class EvalMetrics:
             print(f"   Grounded: {'✓' if result['grounded'] else '✗'}")
             print(f"   Latency: {result['latency_ms']:.0f}ms | Tokens: {int(result['tokens'])}")
             if result['citations']:
-                print(f"   Citations: {len(result['citations'])} chunks from pages "
-                      f"{set(c['page'] for c in result['citations'])}")
+                sources_display = []
+                for c in result['citations']:
+                    if c.get('source_type') == 'url':
+                        sources_display.append(f"URL:{c.get('title', 'N/A')}")
+                    else:
+                        sources_display.append(f"page {c.get('page', 'N/A')}")
+                print(f"   Citations: {len(result['citations'])} chunks from {', '.join(set(sources_display))}")
     
     def save_json(self, filename='eval_results.json'):
         """Save results to JSON file"""
