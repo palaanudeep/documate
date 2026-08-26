@@ -2,14 +2,16 @@
 """
 Evaluation harness for DocuMate RAG system.
 
-Runs test questions against the RAG system and calculates:
+Runs test questions against PDF and HTML fixtures separately.
+
+Calculates:
 - Retrieval hit rate: % of queries where expected evidence is in retrieved chunks
 - Groundedness: Basic check that answer contains content from retrieved chunks
 - Latency: Average response time
 - Token usage: Total tokens consumed
 
 Usage:
-    python run_evals.py [--fixture fixtures/test_document.pdf]
+    python run_evals.py [--pdf-fixture PATH] [--html-fixture PATH]
 """
 
 import sys
@@ -21,16 +23,16 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from app.main.llm.document_rag import (
-    extract_lcdocs_from_file, 
     initialize_qa_rag_chain, 
     get_answer_from_rag,
     RETRIEVER
 )
-from test_cases import TEST_CASES, PDF_TEST_CASES, URL_TEST_CASES
+from test_cases import PDF_TEST_CASES, URL_TEST_CASES
 
 
 class EvalMetrics:
-    def __init__(self):
+    def __init__(self, name=""):
+        self.name = name
         self.total_queries = 0
         self.retrieval_hits = 0
         self.grounded_answers = 0
@@ -67,6 +69,7 @@ class EvalMetrics:
         self.results.append({
             'question': test_case['question'],
             'category': test_case['category'],
+            'source_type': test_case.get('source_type', 'unknown'),
             'retrieval_hit': retrieval_hit,
             'grounded': grounded,
             'evidence_found': f"{evidence_found}/{len(expected_evidence)}",
@@ -75,11 +78,17 @@ class EvalMetrics:
             'citations': result.get('citations', [])
         })
     
-    def print_summary(self):
+    def print_summary(self, verbose=True):
         """Print evaluation summary"""
-        print("\n" + "="*80)
-        print("EVALUATION SUMMARY")
-        print("="*80)
+        if verbose:
+            print("\n" + "="*80)
+            print(f"EVALUATION SUMMARY: {self.name}")
+            print("="*80)
+        
+        if self.total_queries == 0:
+            print("No queries run")
+            return
+            
         print(f"Total queries: {self.total_queries}")
         print(f"Retrieval hit rate: {self.retrieval_hits}/{self.total_queries} "
               f"({100*self.retrieval_hits/self.total_queries:.1f}%)")
@@ -88,37 +97,40 @@ class EvalMetrics:
         print(f"Average latency: {self.total_latency_ms/self.total_queries:.0f}ms")
         print(f"Total tokens used: {int(self.total_tokens)}")
         print(f"Avg tokens per query: {int(self.total_tokens/self.total_queries)}")
-        print("="*80)
         
-        # Print detailed results
-        print("\nDETAILED RESULTS:")
-        print("-"*80)
-        for i, result in enumerate(self.results, 1):
-            print(f"\n{i}. {result['question']}")
-            print(f"   Category: {result['category']}")
-            print(f"   Retrieval hit: {'✓' if result['retrieval_hit'] else '✗'} "
-                  f"(Evidence: {result['evidence_found']})")
-            print(f"   Grounded: {'✓' if result['grounded'] else '✗'}")
-            print(f"   Latency: {result['latency_ms']:.0f}ms | Tokens: {int(result['tokens'])}")
-            if result['citations']:
-                sources_display = []
-                for c in result['citations']:
-                    if c.get('source_type') == 'url':
-                        sources_display.append(f"URL:{c.get('title', 'N/A')}")
-                    else:
-                        sources_display.append(f"page {c.get('page', 'N/A')}")
-                print(f"   Citations: {len(result['citations'])} chunks from {', '.join(set(sources_display))}")
+        if verbose:
+            print("="*80)
+            
+            # Print detailed results
+            print("\nDETAILED RESULTS:")
+            print("-"*80)
+            for i, result in enumerate(self.results, 1):
+                print(f"\n{i}. {result['question']}")
+                print(f"   Category: {result['category']}, Source: {result['source_type']}")
+                print(f"   Retrieval hit: {'✓' if result['retrieval_hit'] else '✗'} "
+                      f"(Evidence: {result['evidence_found']})")
+                print(f"   Grounded: {'✓' if result['grounded'] else '✗'}")
+                print(f"   Latency: {result['latency_ms']:.0f}ms | Tokens: {int(result['tokens'])}")
+                if result['citations']:
+                    sources_display = []
+                    for c in result['citations']:
+                        if c.get('source_type') == 'url':
+                            sources_display.append(f"URL:{c.get('title', 'N/A')}")
+                        else:
+                            sources_display.append(f"page {c.get('page', 'N/A')}")
+                    print(f"   Citations: {len(result['citations'])} chunks from {', '.join(set(sources_display))}")
     
     def save_json(self, filename='eval_results.json'):
         """Save results to JSON file"""
         output = {
             'summary': {
+                'name': self.name,
                 'total_queries': self.total_queries,
-                'retrieval_hit_rate': self.retrieval_hits / self.total_queries,
-                'groundedness_rate': self.grounded_answers / self.total_queries,
-                'avg_latency_ms': self.total_latency_ms / self.total_queries,
+                'retrieval_hit_rate': self.retrieval_hits / self.total_queries if self.total_queries > 0 else 0,
+                'groundedness_rate': self.grounded_answers / self.total_queries if self.total_queries > 0 else 0,
+                'avg_latency_ms': self.total_latency_ms / self.total_queries if self.total_queries > 0 else 0,
                 'total_tokens': int(self.total_tokens),
-                'avg_tokens_per_query': int(self.total_tokens / self.total_queries)
+                'avg_tokens_per_query': int(self.total_tokens / self.total_queries) if self.total_queries > 0 else 0
             },
             'results': self.results
         }
@@ -128,19 +140,14 @@ class EvalMetrics:
         print(f"\nResults saved to {filename}")
 
 
-def run_eval(fixture_path='fixtures/test_document.pdf'):
-    """Run evaluation on test cases"""
-    print(f"Loading document: {fixture_path}")
+def load_pdf_fixture(fixture_path):
+    """Load PDF fixture and return docs"""
+    print(f"Loading PDF: {fixture_path}")
     
-    # Check if fixture exists
     if not os.path.exists(fixture_path):
-        print(f"ERROR: Fixture not found at {fixture_path}")
-        print("Please create a fixture PDF first or specify a different path.")
-        print("\nTo use the example fixture, first run:")
-        print("  python create_fixture_pdf.py")
+        print(f"  SKIP: PDF fixture not found")
         return None
     
-    # Load document and initialize RAG
     with open(fixture_path, 'rb') as f:
         from werkzeug.datastructures import FileStorage
         file_storage = FileStorage(f, filename=os.path.basename(fixture_path))
@@ -148,20 +155,78 @@ def run_eval(fixture_path='fixtures/test_document.pdf'):
         try:
             from app.main.llm.document_rag import extract_lcdocs_from_file
             docs = list(extract_lcdocs_from_file(file_storage))
-            initialize_qa_rag_chain(docs)
-            print(f"Loaded {len(docs)} pages from document\n")
+            print(f"  Loaded {len(docs)} pages from PDF\n")
+            return docs
         except Exception as e:
-            print(f"ERROR loading document: {e}")
+            print(f"  ERROR loading PDF: {e}")
             return None
+
+
+def load_html_fixture(fixture_path):
+    """Load HTML fixture and return docs with URL metadata"""
+    print(f"Loading HTML: {fixture_path}")
     
-    # Run test cases
-    metrics = EvalMetrics()
+    if not os.path.exists(fixture_path):
+        print(f"  SKIP: HTML fixture not found")
+        return None
     
-    print("Running evaluation test cases...")
+    try:
+        # Extract HTML as if it were a URL source
+        from bs4 import BeautifulSoup
+        import html2text
+        from langchain_core.documents import Document
+        
+        with open(fixture_path, 'r') as f:
+            html_content = f.read()
+        
+        # Parse HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
+        for element in soup(['script', 'style', 'nav', 'footer', 'header']):
+            element.decompose()
+        
+        title = soup.find('title')
+        title_text = title.get_text().strip() if title else "CloudTech Solutions"
+        
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        h.ignore_images = True
+        h.body_width = 0
+        
+        main_content = soup.find('main') or soup.find('body')
+        text = h.handle(str(main_content))
+        text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
+        
+        # Create document with URL-style metadata
+        doc = Document(
+            page_content=text,
+            metadata={
+                "source": "file://" + os.path.abspath(fixture_path),
+                "source_type": "url",
+                "title": title_text,
+                "url": "file://" + os.path.abspath(fixture_path),
+                "content_length": len(text)
+            }
+        )
+        
+        print(f"  Extracted {len(text)} chars from HTML (title: {title_text})\n")
+        return [doc]
+        
+    except Exception as e:
+        print(f"  ERROR loading HTML: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def run_test_suite(test_cases, metrics_name):
+    """Run a suite of test cases against loaded RAG system"""
+    metrics = EvalMetrics(name=metrics_name)
+    
+    print(f"Running {len(test_cases)} test cases for {metrics_name}...")
     print("-"*80)
     
-    for i, test_case in enumerate(TEST_CASES, 1):
-        print(f"\n[{i}/{len(TEST_CASES)}] {test_case['question']}")
+    for i, test_case in enumerate(test_cases, 1):
+        print(f"\n[{i}/{len(test_cases)}] {test_case['question']}")
         
         try:
             # Get answer
@@ -186,8 +251,10 @@ def run_eval(fixture_path='fixtures/test_document.pdf'):
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Run DocuMate RAG evaluation')
-    parser.add_argument('--fixture', default='fixtures/test_document.pdf',
+    parser.add_argument('--pdf-fixture', default='fixtures/test_document.pdf',
                        help='Path to test PDF fixture')
+    parser.add_argument('--html-fixture', default='fixtures/cloudtech_company.html',
+                       help='Path to test HTML fixture')
     parser.add_argument('--output', default='eval_results.json',
                        help='Output JSON file for results')
     
@@ -200,11 +267,62 @@ def main():
         print("  export OPENAI_API_KEY='your-key-here'")
         sys.exit(1)
     
-    metrics = run_eval(args.fixture)
+    all_metrics = []
     
-    if metrics:
-        metrics.print_summary()
-        metrics.save_json(args.output)
+    # Run PDF tests
+    if PDF_TEST_CASES:
+        pdf_docs = load_pdf_fixture(args.pdf_fixture)
+        if pdf_docs:
+            initialize_qa_rag_chain(pdf_docs)
+            pdf_metrics = run_test_suite(PDF_TEST_CASES, "PDF Tests")
+            pdf_metrics.print_summary()
+            all_metrics.append(pdf_metrics)
+    
+    # Run URL tests
+    if URL_TEST_CASES:
+        html_docs = load_html_fixture(args.html_fixture)
+        if html_docs:
+            initialize_qa_rag_chain(html_docs)
+            url_metrics = run_test_suite(URL_TEST_CASES, "URL Tests")
+            url_metrics.print_summary()
+            all_metrics.append(url_metrics)
+    
+    # Combined summary
+    if len(all_metrics) > 1:
+        print("\n" + "="*80)
+        print("COMBINED SUMMARY")
+        print("="*80)
+        total_queries = sum(m.total_queries for m in all_metrics)
+        total_hits = sum(m.retrieval_hits for m in all_metrics)
+        total_grounded = sum(m.grounded_answers for m in all_metrics)
+        total_latency = sum(m.total_latency_ms for m in all_metrics)
+        total_tokens = sum(m.total_tokens for m in all_metrics)
+        
+        print(f"Total queries: {total_queries} ({PDF_TEST_CASES and len(PDF_TEST_CASES) or 0} PDF, {URL_TEST_CASES and len(URL_TEST_CASES) or 0} URL)")
+        print(f"Retrieval hit rate: {total_hits}/{total_queries} ({100*total_hits/total_queries:.1f}%)")
+        print(f"Grounded answers: {total_grounded}/{total_queries} ({100*total_grounded/total_queries:.1f}%)")
+        print(f"Average latency: {total_latency/total_queries:.0f}ms")
+        print(f"Total tokens used: {int(total_tokens)}")
+        print(f"Avg tokens per query: {int(total_tokens/total_queries)}")
+        print("="*80)
+    
+    # Save combined results
+    if all_metrics:
+        combined_results = {
+            'pdf': all_metrics[0].results if len(all_metrics) > 0 else [],
+            'url': all_metrics[1].results if len(all_metrics) > 1 else [],
+            'summary': {
+                'total_queries': sum(m.total_queries for m in all_metrics),
+                'retrieval_hit_rate': sum(m.retrieval_hits for m in all_metrics) / sum(m.total_queries for m in all_metrics),
+                'groundedness_rate': sum(m.grounded_answers for m in all_metrics) / sum(m.total_queries for m in all_metrics),
+                'avg_latency_ms': sum(m.total_latency_ms for m in all_metrics) / sum(m.total_queries for m in all_metrics),
+                'total_tokens': int(sum(m.total_tokens for m in all_metrics))
+            }
+        }
+        
+        with open(args.output, 'w') as f:
+            json.dump(combined_results, f, indent=2)
+        print(f"\nCombined results saved to {args.output}")
 
 
 if __name__ == '__main__':

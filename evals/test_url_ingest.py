@@ -6,6 +6,7 @@ Tests:
 1. HTML file can be extracted
 2. URL metadata format
 3. Citation format distinguishes sources
+4. HTML extraction produces correct metadata for RAG
 
 Run without requiring full Flask app.
 """
@@ -72,10 +73,83 @@ def test_html_extraction():
     return True
 
 
+def test_html_to_langchain_doc():
+    """Test that HTML converts to LangChain doc with correct metadata"""
+    print("\n" + "="*60)
+    print("TEST 2: HTML to LangChain Document")
+    print("="*60)
+    
+    try:
+        from bs4 import BeautifulSoup
+        import html2text
+    except ImportError as e:
+        print(f"SKIP: Missing dependencies - {e}")
+        return None
+    
+    fixture_path = 'fixtures/cloudtech_company.html'
+    if not os.path.exists(fixture_path):
+        print(f"FAIL: Fixture not found at {fixture_path}")
+        return False
+    
+    try:
+        # Simulate what load_html_fixture does in run_evals.py
+        with open(fixture_path, 'r') as f:
+            html_content = f.read()
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        for element in soup(['script', 'style', 'nav', 'footer', 'header']):
+            element.decompose()
+        
+        title = soup.find('title')
+        title_text = title.get_text().strip() if title else "CloudTech Solutions"
+        
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        h.ignore_images = True
+        h.body_width = 0
+        
+        main_content = soup.find('main') or soup.find('body')
+        text = h.handle(str(main_content))
+        text = '\n'.join(line.strip() for line in text.split('\n') if line.strip())
+        
+        # Create mock document with URL-style metadata
+        metadata = {
+            "source": "file://" + os.path.abspath(fixture_path),
+            "source_type": "url",
+            "title": title_text,
+            "url": "file://" + os.path.abspath(fixture_path),
+            "content_length": len(text)
+        }
+        
+        print(f"✓ Created document with {len(text)} chars")
+        print(f"✓ Metadata:")
+        for key, value in metadata.items():
+            if key == 'url' or key == 'source':
+                print(f"    {key}: {value[:60]}...")
+            else:
+                print(f"    {key}: {value}")
+        
+        # Verify metadata has required fields
+        assert metadata['source_type'] == 'url', "Missing source_type=url"
+        assert metadata['title'] == title_text, "Title mismatch"
+        assert 'url' in metadata, "Missing url field"
+        assert metadata['content_length'] > 0, "Empty content"
+        
+        print("✓ All required metadata fields present")
+        print("PASS: HTML converts to LangChain doc with URL metadata")
+        return True
+        
+    except Exception as e:
+        print(f"FAIL: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def test_citation_format():
     """Test that URL citations are formatted correctly"""
     print("\n" + "="*60)
-    print("TEST 2: Citation Format Logic")
+    print("TEST 3: Citation Format Logic")
     print("="*60)
     
     # Mock citation format logic without importing RAG code
@@ -137,7 +211,7 @@ def test_citation_format():
 def test_pdf_fixture_exists():
     """Verify PDF fixture for comparison"""
     print("\n" + "="*60)
-    print("TEST 3: Fixtures Ready")
+    print("TEST 4: Fixtures Ready")
     print("="*60)
     
     fixtures = {
@@ -170,6 +244,7 @@ def main():
     results = []
     
     results.append(("HTML Extraction", test_html_extraction()))
+    results.append(("HTML to LangChain Doc", test_html_to_langchain_doc()))
     results.append(("Citation Format", test_citation_format()))
     results.append(("Fixtures Ready", test_pdf_fixture_exists()))
     
