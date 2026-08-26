@@ -153,20 +153,19 @@ python3 run_evals.py            # Runs test questions on PDF and HTML fixtures
 - **Latency**: Average response time per query
 - **Token usage**: Prompt/completion tokens per query
 
-**Example output:**
+**Expected output format:**
 
 ```
 EVALUATION SUMMARY
 ================================================================================
 Total queries: 15 (8 PDF, 7 URL)
-Retrieval hit rate: 13/15 (86.7%)
-Grounded answers: 15/15 (100.0%)
-Average latency: 1450ms
-Total tokens used: 18000
-Avg tokens per query: 1200
+Retrieval hit rate: [run to measure]
+Grounded answers: [run to measure]
+Average latency: [run to measure]
+Total tokens used: [run to measure]
 ```
 
-The eval harness does not run in CI (requires live OpenAI API calls). Run locally with `make eval` before demoing changes.
+Note: Numbers shown are placeholders. Run `make eval` locally to generate actual metrics. The harness does not run in CI (requires live OpenAI API calls).
 
 ## Key Features
 
@@ -308,13 +307,13 @@ curl -X POST http://localhost:5000/api/load_doc \
 
 ## Cost & Latency
 
-Measured on fixture PDF (3 pages, ~1200 tokens):
+Estimated for typical use (3-page PDF, ~1200 tokens):
 
 - **Embedding cost**: ~$0.0001 per document (one-time, on upload)
 - **Query cost**: ~$0.002 per Q&A (4 chunks × 250 tokens + generation)
-- **Latency**: ~1.2-1.8s per query (includes embedding lookup + LLM generation)
+- **Latency**: ~1-2s per query (embedding lookup + LLM generation)
 
-Token usage is logged per request for cost tracking.
+Token usage is logged per request (word count × 1.3 estimate) for cost tracking. For exact counts, parse OpenAI API response usage fields.
 
 ## Limitations & Next Steps
 
