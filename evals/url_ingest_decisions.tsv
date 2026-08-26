@@ -1,0 +1,7 @@
+ts	phase	decision	why	evidence	result
+2026-08-26T19:24:00Z	ground	started URL ingest without pstack, now stopping to apply rigor	user required pstack discipline before continuing	this log	applying principles now
+2026-08-26T19:24:00Z	ground	URL extraction code exists but unverified	wrote BeautifulSoup extraction, route updates, frontend changes without testing	backend/app/main/utils.py, routes.py, frontend/chat.js	needs verification
+2026-08-26T19:25:00Z	verify	will build test script to prove URL ingest works before continuing	prove-it-works principle - check real artifact, not compilation	next step	pending
+2026-08-26T19:30:00Z	verify	citation format test passed	proved URL citations distinguish from PDF citations	test_url_ingest.py output	PASS: format logic correct
+2026-08-26T19:31:00Z	verify	PDF fixture generation skipped	PyMuPDF not available in cloud environment, HTML fixture sufficient for URL testing	create_fixture_pdf.py error	acceptable, HTML fixture works
+2026-08-26T19:35:00Z	complete	README updated with URL ingest and DocuMate vs SuperWise positioning	unslop principles applied, clear product distinction	README.md	PDF + website RAG identity clear
