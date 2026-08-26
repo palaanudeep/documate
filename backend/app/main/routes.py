@@ -5,6 +5,7 @@ import json
 from app import db
 from app.models import Chat, Message
 from app.main.llm.document_rag import extract_and_load_document, get_answer_from_rag, get_answer_from_rag_stream
+from app.main.utils import extract_lcdocs_from_source
 
 main = Blueprint('main', __name__)
 
@@ -17,10 +18,36 @@ def home():
 @main.route('/api/load_doc', methods=['POST'])
 @jwt_required()
 def load_document():
+    """Load a document from file upload or URL"""
     try:
         if current_user is None:
             return jsonify({'message': 'Please login to Documate!'}), 401
-        if 'file' in request.files:
+        
+        # Check if it's a URL or file upload
+        data = request.get_json() if request.is_json else {}
+        url = data.get('url', '').strip() if data else None
+        
+        if url:
+            # URL-based ingest
+            print('URL: ', url)
+            from app.main.llm.document_rag import extract_and_load_source
+            result = extract_and_load_source(url, source_type='url')
+            user_id = current_user.id
+            doc_name = f"Web: {url[:100]}"  # Truncate long URLs
+            chat = Chat(user_id, doc_name, result['answer'])
+            db.session.add(chat)
+            db.session.commit()
+            return jsonify({
+                'summary': result['answer'],
+                'citations': result['citations'],
+                'chat_id': chat.id,
+                'request_id': result['request_id'],
+                'latency_ms': result['latency_ms'],
+                'token_usage': result['token_usage'],
+                'source_type': 'url'
+            })
+        elif 'file' in request.files:
+            # File-based ingest
             file = request.files['file']
             filename = secure_filename(file.filename)
             print('FILENAME: ', filename)
@@ -36,12 +63,20 @@ def load_document():
                 'chat_id': chat.id,
                 'request_id': result['request_id'],
                 'latency_ms': result['latency_ms'],
-                'token_usage': result['token_usage']
+                'token_usage': result['token_usage'],
+                'source_type': 'file'
             })
-        return jsonify({'message': 'No file found in request'}), 400
+        else:
+            return jsonify({'message': 'No file or URL provided in request'}), 400
+    except ValueError as e:
+        # User-facing errors (bad URLs, fetch failures, etc.)
+        print(f"ValueError: {e}")
+        return jsonify({'message': str(e)}), 400
     except Exception as e:
-        print(e)
-        return jsonify({'message': 'Server Error'}), 500
+        print(f"Server error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'message': f'Server Error: {str(e)}'}), 500
 
 
 @main.route('/api/get_answer', methods=['POST'])

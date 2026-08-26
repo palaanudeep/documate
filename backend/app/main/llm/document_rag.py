@@ -124,32 +124,69 @@ def log_request_trace(request_id, question, answer, citations, token_usage, late
 
 
 def format_citations(source_docs):
-    """Format retrieved documents into citation objects"""
+    """Format retrieved documents into citation objects with source type distinction"""
     citations = []
     seen_chunks = set()
     
     for doc in source_docs:
-        chunk_key = (doc.metadata.get('page', 'N/A'), doc.metadata.get('chunk_id', 'N/A'))
+        source_type = doc.metadata.get('source_type', 'pdf')
+        
+        # Create unique chunk key based on source type
+        if source_type == 'url':
+            chunk_key = (doc.metadata.get('url', ''), doc.metadata.get('chunk_id', 'N/A'))
+        else:
+            chunk_key = (doc.metadata.get('page', 'N/A'), doc.metadata.get('chunk_id', 'N/A'))
+        
         if chunk_key not in seen_chunks:
-            citations.append({
-                'page': doc.metadata.get('page', 'N/A'),
+            citation = {
                 'chunk_id': doc.metadata.get('chunk_id', 'N/A'),
                 'text': doc.page_content[:200] + '...' if len(doc.page_content) > 200 else doc.page_content,
-                'source': doc.metadata.get('source', 'Unknown')
-            })
+                'source': doc.metadata.get('source', 'Unknown'),
+                'source_type': source_type
+            }
+            
+            # Add type-specific fields
+            if source_type == 'url':
+                citation['url'] = doc.metadata.get('url', 'Unknown')
+                citation['title'] = doc.metadata.get('title', 'Untitled')
+                citation['page'] = None  # URLs don't have pages
+            else:
+                citation['page'] = doc.metadata.get('page', 'N/A')
+                citation['url'] = None
+                citation['title'] = None
+            
+            citations.append(citation)
             seen_chunks.add(chunk_key)
     
     return citations
 
 
 def extract_and_load_document(file):
+    """Legacy function for file uploads - redirects to extract_and_load_source"""
+    return extract_and_load_source(file, source_type='file')
+
+
+def extract_and_load_source(source, source_type='file', source_name=None):
+    """
+    Extract and load a source (file or URL) into the RAG system.
+    
+    Args:
+        source: File object (for type='file') or URL string (for type='url')
+        source_type: 'file' or 'url'
+        source_name: Optional display name for the source
+    
+    Returns:
+        dict with answer, citations, request_id, latency_ms, token_usage
+    """
     request_id = str(uuid.uuid4())
     start_time = time.time()
     
     try:
-        docs = extract_lcdocs_from_file(file)
-        if docs is None:
-            raise ValueError("Failed to extract documents from file")
+        from app.main.utils import extract_lcdocs_from_source
+        
+        docs = list(extract_lcdocs_from_source(source, source_type))
+        if not docs:
+            raise ValueError(f"Failed to extract documents from {source_type}")
             
         initialize_qa_rag_chain(docs)
         
