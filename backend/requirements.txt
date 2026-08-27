@@ -20,3 +20,7 @@ flask-jwt-extended
 Flask-Migrate
 redis
 gunicorn
+reportlab
+beautifulsoup4
+requests
+html2text
